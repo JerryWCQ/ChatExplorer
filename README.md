@@ -6,8 +6,8 @@ claude.ai 的侧边栏只有一条按时间排列的长列表。当对话积累�
 
 > 非官方项目，与 Anthropic 无关。
 
-<!-- 一张截图：screenshot.png -->
-<!-- ![screenshot](screenshot.png) -->
+<img width="2864" height="1562" alt="screenshot" src="https://github.com/user-attachments/assets/953e64fb-2a19-4837-a5c2-e81639600fa2" />
+
 
 ## 功能
 
