@@ -1,0 +1,76 @@
+:root {
+  color-scheme: light dark;
+  font: 14px/1.5 system-ui, "Segoe UI", sans-serif;
+}
+
+body {
+  margin: 0;
+}
+
+.shell {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+}
+
+button {
+  font: inherit;
+  padding: 4px 10px;
+}
+
+.badge {
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 12px;
+}
+
+.badge.ok {
+  background: #d8f5dd;
+  color: #14532d;
+}
+
+.badge.bad {
+  background: #fadcdc;
+  color: #7f1d1d;
+}
+
+.error {
+  color: #b91c1c;
+}
+
+h2 {
+  font-size: 14px;
+  margin: 20px 0 6px;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding-left: 20px;
+}
+
+pre {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  padding: 8px;
+  overflow: auto;
+}
+
+input {
+  font: inherit;
+  width: 100%;
+  max-width: 420px;
+  padding: 4px 6px;
+}
+
+small {
+  opacity: 0.6;
+}

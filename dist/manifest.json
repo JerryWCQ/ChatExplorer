@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "ChatExplorer",
+  "version": "0.2.0",
+  "description": "A file-manager view for your claude.ai chats, with an optional AI organizer on your own API key. claude.ai is never modified.",
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://claude.ai/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "ChatExplorer"
+  }
+}

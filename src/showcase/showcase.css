@@ -1,0 +1,266 @@
+/* Chrome for the gallery itself. Not part of the product UI. */
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+.sx-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-family: var(--font-ui);
+}
+
+.sx-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+  flex: none;
+}
+
+.sx-bar strong {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-medium);
+}
+
+.sx-bar label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-md);
+  color: var(--text-secondary);
+}
+
+.sx-columns {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sx-column {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  border-right: 1px solid var(--border);
+}
+
+.sx-column:last-child {
+  border-right: none;
+}
+
+.sx-column-head {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border-strong);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--text-secondary);
+}
+
+/* --- gallery layout ------------------------------------------------------- */
+
+.gx-root {
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+}
+
+.gx-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.gx-h2 {
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--sp-1);
+}
+
+.gx-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  align-items: flex-start;
+}
+
+.gx-row {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: flex-start;
+  width: 100%;
+}
+
+.gx-label {
+  flex: none;
+  width: 96px;
+  padding-top: var(--sp-1);
+  font-size: var(--fs-sm);
+  color: var(--text-tertiary);
+}
+
+.gx-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.gx-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.gx-stack code,
+.gx-row code {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+}
+
+.gx-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.gx-swatch span {
+  width: 40px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  display: block;
+}
+
+.gx-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--sp-2);
+  overflow: hidden;
+}
+
+/* --- preview pane sample --------------------------------------------------- */
+
+.gx-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+}
+
+.gx-preview-title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-tight);
+}
+
+.gx-meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--sp-1) var(--sp-3);
+  margin: var(--sp-2) 0;
+  font-size: var(--fs-sm);
+}
+
+.gx-meta dt {
+  color: var(--text-tertiary);
+}
+
+.gx-meta dd {
+  margin: 0;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+}
+
+.gx-meta a {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.gx-meta a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.gx-summary {
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: var(--lh-normal);
+  color: var(--text-secondary);
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+/* --- settings sample -------------------------------------------------------- */
+
+.gx-settings {
+  display: flex;
+  width: 100%;
+  max-width: 560px;
+  padding: 0;
+}
+
+.gx-settings nav {
+  flex: none;
+  width: 120px;
+  padding: var(--sp-2);
+  border-right: 1px solid var(--border);
+}
+
+.gx-settings-body {
+  flex: 1;
+  padding: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
+.gx-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  font-size: var(--fs-md);
+}
+
+.gx-field > span {
+  color: var(--text-secondary);
+}
+
+select.input {
+  max-width: 180px;
+}

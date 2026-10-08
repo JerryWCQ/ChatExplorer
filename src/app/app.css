@@ -1,0 +1,1364 @@
+/* App shell layout. All visual values come from tokens.css; component idioms
+   (buttons, tree nodes, rows, menus…) live in components.css. This file only
+   arranges them. */
+
+@import "../ui/tokens.css";
+@import "../ui/components.css";
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-page);
+  color: var(--text-primary);
+}
+
+/* --- toolbar row ---------------------------------------------------------- */
+
+.app-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+
+.app-toolbar .crumbs {
+  flex: 1;
+}
+
+/* --- main area: nav / content / preview ----------------------------------- */
+
+.app-main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* A 5px grab strip that sits *on* the pane border rather than next to it, so
+   the border stays a 1px hairline while the target is big enough to hit. The
+   negative margins pull it over the neighbours without moving them. */
+.pane-resizer {
+  flex: none;
+  position: relative;
+  width: 5px;
+  margin: 0 -2px;
+  z-index: 3;
+  cursor: col-resize;
+  user-select: none;
+  background: transparent;
+}
+
+/* Feedback is a *darker hairline*, not a thick accent bar (user decision): the
+   handle re-paints the pane's own 1px border in a stronger colour and nothing
+   else, so the layout looks identical while dragging.
+
+   The strip is 5px wide and pulled 2px over each neighbour, so the border it
+   covers is not in the middle: on the left handle the nav's border-right lands
+   at local x=1, on the right handle the preview's border-left lands at x=3. */
+.pane-resizer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: transparent;
+  transition: background var(--dur-fast) var(--ease);
+}
+
+.pane-resizer.is-left::before {
+  left: 1px;
+}
+
+.pane-resizer.is-right::before {
+  left: 3px;
+}
+
+/* One notch darker than the resting hairline, and no darker: --border-strong is
+   near-black in the light theme (#141413) and read as a hard black rule. The ask
+   was a light-brown deepening of the line that is already there. */
+.pane-resizer:hover::before,
+.pane-resizer:active::before,
+.pane-resizer:focus-visible::before {
+  background: var(--border-active);
+}
+
+.pane-resizer:focus-visible {
+  outline: none;
+}
+
+.app-nav {
+  /* Width is set inline from the persisted setting; this is only the fallback
+     for the first paint, before settings have loaded. */
+  width: 220px;
+  flex: none;
+  overflow-y: auto;
+  padding: var(--sp-2);
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  user-select: none;
+}
+
+.nav-section {
+  margin-bottom: var(--sp-2);
+}
+
+.nav-heading {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: var(--sp-2) var(--sp-2) var(--sp-1);
+}
+
+.app-content {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-page);
+}
+
+/* The one scroll container all views share; also the marquee's coordinate
+   system, hence position:relative. */
+.view-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+  outline: none;
+  /* No native scrollbar here: ViewScrollbar draws the vertical one. A native
+     gutter sits outside clientWidth, so a stuck header could not paint over it
+     and a press on the track could never reach this element to start a marquee.
+     Hiding it also gives the content the full width back. Horizontal goes with
+     it (scrollbar-width has no per-axis form), which is why .icon-grid below
+     clamps its track size so the grid can never overflow sideways. */
+  scrollbar-width: none;
+}
+
+.view-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* Sits in .app-content (the positioned ancestor), not in .view-scroll, so it
+   does not scroll with the content and does not count as list content. */
+.vscroll-thumb {
+  position: absolute;
+  right: 0;
+  width: var(--scrollbar-size);
+  z-index: 6;
+  cursor: default;
+}
+
+/* The painted body is narrower than the element, so the few pixels either side
+   of the thumb still grab it — everything beyond that is blank space that
+   starts a marquee.
+
+   It is a pseudo-element rather than `padding` + `background-clip: content-box`
+   because that pair tapers the pill to a point at both ends: the radius is
+   resolved on the BORDER box (10px wide), so its 5px corner arcs eat almost the
+   whole 4px painted strip. Giving the strip its own box lets the radius be
+   resolved against the strip itself, which is what "round" meant. */
+.vscroll-thumb::before {
+  content: "";
+  position: absolute;
+  inset: 0 3px;
+  background-color: var(--scrollbar-thumb);
+  border-radius: 999px;
+}
+
+.vscroll-thumb:hover::before,
+.vscroll-thumb:active::before {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+.app-preview {
+  /* See .app-nav: the real width arrives inline. */
+  width: 300px;
+  flex: none;
+  overflow-y: auto;
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border);
+  padding: var(--sp-4);
+}
+
+/* --- icon view ------------------------------------------------------------- */
+
+.icon-grid {
+  display: grid;
+  /* min() so a pane narrower than one cell shrinks the cell instead of
+     overflowing: .view-scroll has no horizontal scrollbar to show for it. */
+  grid-template-columns: repeat(auto-fill, minmax(min(var(--cell-w), 100%), 1fr));
+  align-content: start;
+  gap: var(--sp-1);
+  padding: var(--sp-3);
+}
+
+.grid-cell {
+  /* 1296 items: let the engine skip offscreen cell layout instead of hand
+     rolling virtualisation. contain-intrinsic-size keeps the scrollbar sane. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto var(--cell-h);
+}
+
+/* --- details view ------------------------------------------------------------ */
+
+.details-view {
+  padding-bottom: var(--sp-3);
+}
+
+.details-view .details-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg-page);
+}
+
+.details-row {
+  content-visibility: auto;
+}
+
+.details-row.is-compact {
+  contain-intrinsic-size: auto 28px;
+}
+
+.details-row.is-comfortable {
+  contain-intrinsic-size: auto 48px;
+}
+
+/* State classes shared with .grid-cell (components.css) — details rows carry
+   the same selection machinery, so they need the same visual vocabulary. */
+.details-row.is-drop {
+  outline: var(--drop-outline);
+  outline-offset: var(--drop-outline-offset);
+}
+
+.details-row.is-dragging {
+  opacity: 0.5;
+}
+
+.details-row.is-focus {
+  box-shadow: var(--focus-ring);
+}
+
+.details-row.is-cut {
+  opacity: 0.45;
+}
+
+.row-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-icon {
+  flex: none;
+  display: grid;
+  place-content: center;
+  color: var(--text-secondary);
+}
+
+/* Details view group headers sit below the sticky column header. */
+.details-view .group-header {
+  top: 26px;
+}
+
+/* --- group collapse ----------------------------------------------------------- */
+
+.group-header.is-toggle {
+  cursor: pointer;
+}
+
+/* On the ::before, not the element: the fill lives there now, and painting it
+   on the element would bleed across the strip the header keeps clear for the
+   scrollbar track while it is not pinned. */
+.group-header.is-toggle:hover::before {
+  background-color: var(--bg-hover);
+}
+
+.group-header.is-toggle > svg {
+  color: var(--text-tertiary);
+  flex: none;
+}
+
+/* --- item check boxes ----------------------------------------------------------- */
+
+/* The details column is a fixed gutter; the icon-view box floats over the cell
+   (see .cell-check in components.css) so it costs the grid no space. */
+.details-row > .row-check,
+.details-header > .row-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  gap: 0;
+}
+
+.details-header > .row-check:hover {
+  background: transparent;
+}
+
+/* --- inline rename ------------------------------------------------------------ */
+
+.rename-input {
+  font: inherit;
+  font-size: var(--fs-md);
+  color: var(--text-primary);
+  background: var(--bg-raised);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-sm);
+  padding: 1px var(--sp-1);
+  width: 100%;
+  min-width: 0;
+  outline: none;
+  text-align: inherit;
+}
+
+.grid-cell .rename-input {
+  text-align: center;
+}
+
+/* --- preview pane ------------------------------------------------------------- */
+
+.preview-title {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-medium);
+  margin: 0 0 var(--sp-1);
+  word-break: break-word;
+}
+
+.preview-official {
+  color: var(--text-tertiary);
+  font-size: var(--fs-sm);
+  margin: 0 0 var(--sp-3);
+}
+
+.preview-meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--sp-1) var(--sp-3);
+  font-size: var(--fs-sm);
+  margin: var(--sp-3) 0;
+}
+
+.preview-meta dt {
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.preview-meta dd {
+  margin: 0;
+  color: var(--text-secondary);
+  word-break: break-word;
+}
+
+/* `white-space: pre-wrap` is gone with the switch to rendered Markdown: the
+   line breaks are now structure (paragraphs, list items), not whitespace, and
+   keeping pre-wrap would double every blank line into a gap. */
+.preview-summary {
+  font-size: var(--fs-md);
+  color: var(--text-secondary);
+  word-break: break-word;
+  margin: var(--sp-3) 0;
+}
+
+.preview-notes {
+  width: 100%;
+  min-height: 72px;
+  resize: vertical;
+  font: inherit;
+  font-size: var(--fs-md);
+  color: var(--text-primary);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--sp-2);
+}
+
+.preview-notes:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.preview-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+
+.preview-empty {
+  color: var(--text-tertiary);
+  text-align: center;
+  padding: var(--sp-6) var(--sp-3);
+}
+
+/* Stack preview: what the pile spans and holds, not its top card. */
+.stack-models {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-2);
+}
+
+.stack-model {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.stack-model-count {
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.stack-members {
+  list-style: none;
+  margin: var(--sp-3) 0;
+  padding: 0;
+  border-top: 1px solid var(--border);
+}
+
+.stack-member {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  width: 100%;
+  padding: var(--sp-1) var(--sp-1);
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.stack-member:hover {
+  background: var(--bg-hover);
+}
+
+.stack-member:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.stack-member-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stack-member-date {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+/* --- overlays ------------------------------------------------------------------ */
+
+.overlay-scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+}
+
+.overlay-scrim.is-top {
+  align-items: start;
+  padding-top: 12vh;
+}
+
+.context-menu-host {
+  position: fixed;
+  z-index: 120;
+}
+
+/* A fixed box shrinks to the space left of it, so a menu opened near the right
+   edge used to wrap its labels onto two or three lines inside a 26px row. Taking
+   the content width (capped) lets the edge flip move it fully into view; a label
+   longer than the cap is cut with an ellipsis instead of wrapping. */
+.context-menu-host > .menu {
+  width: max-content;
+  max-width: min(360px, calc(100vw - 16px));
+}
+
+.toast-host {
+  position: fixed;
+  bottom: var(--sp-5);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  z-index: 110;
+  pointer-events: none;
+}
+
+.toast-host .toast {
+  pointer-events: auto;
+}
+
+/* --- pickers (quick jump / folder picker) --------------------------------------- */
+
+.picker {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-float);
+  width: 480px;
+  max-width: calc(100vw - var(--sp-6));
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: pop var(--dur-base) var(--ease);
+}
+
+.picker-input {
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--fs-lg);
+  padding: var(--sp-3) var(--sp-4);
+  outline: none;
+}
+
+.picker-list {
+  overflow-y: auto;
+  padding: var(--sp-1);
+}
+
+.picker-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  cursor: default;
+  min-width: 0;
+}
+
+.picker-item.is-active {
+  background: var(--bg-selected);
+}
+
+.picker-item .picker-path {
+  color: var(--text-tertiary);
+  font-size: var(--fs-sm);
+  margin-left: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 45%;
+  flex: none;
+}
+
+.picker-item .picker-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picker-empty {
+  padding: var(--sp-4);
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+/* --- settings ------------------------------------------------------------------- */
+
+.settings-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-float);
+  width: 520px;
+  max-width: calc(100vw - var(--sp-6));
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: var(--sp-5);
+  animation: pop var(--dur-base) var(--ease);
+}
+
+.settings-panel h2 {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-medium);
+}
+
+.settings-panel h3 {
+  margin: var(--sp-4) 0 var(--sp-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+  font-size: var(--fs-md);
+}
+
+.settings-row > label {
+  color: var(--text-primary);
+}
+
+/* The closed state of the self-drawn drop-down. Shaped like the `<select>` it
+   replaced — same height, same border, same raised fill — so only the popup
+   changed; the row itself should look untouched. */
+.select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  font: inherit;
+  font-size: var(--fs-md);
+  color: var(--text-primary);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  height: 28px;
+  padding: 0 var(--sp-2);
+  min-width: 160px;
+  max-width: 260px;
+  cursor: default;
+  text-align: left;
+}
+
+.select:hover {
+  background: var(--bg-hover);
+}
+
+/* The label is the part allowed to shrink; the chevron must not, or a long
+   option ("在已打开的 Claude 标签页内切换") would squeeze it to nothing. */
+.select-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select > .icon {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+/* .menu-mark / .menu-dot live in components.css: the Select popup, the context
+   menus and the gallery all use them. */
+
+/* Keyboard position, distinct from `:hover` only in that it survives the mouse
+   leaving. Same fill, because to the user they are the same thing: the row
+   Enter would take. */
+.menu-item.is-active:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+/* Sits under the row it explains, indented past nothing — it is a caption for
+   the whole row, not for the control alone. */
+.settings-hint {
+  margin: 0 0 var(--sp-2);
+  color: var(--text-tertiary);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-normal);
+  max-width: 44ch;
+}
+
+.settings-value {
+  color: var(--text-tertiary);
+  font-size: var(--fs-sm);
+  min-width: 40px;
+  text-align: right;
+}
+
+/* --- history panel ---------------------------------------------------------------- */
+
+/* Borrows the settings panel's shell (same fill, radius, shadow, entry
+   animation) so the app has one dialog idiom, not two. It is taller and
+   narrower: the content is a single timeline, and a long one deserves the
+   height more than the width. */
+.history-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-float);
+  width: 460px;
+  max-width: calc(100vw - var(--sp-6));
+  max-height: 80vh;
+  padding: var(--sp-5);
+  animation: pop var(--dur-base) var(--ease);
+}
+
+.history-panel h2 {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-medium);
+}
+
+/* Only this scrolls, so the title, the hint and the Close button stay put
+   however long the log gets. */
+.history-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin-top: var(--sp-2);
+  /* The spine the dots sit on. It runs the height of the list, which reads as
+     "these are all one sequence" without needing a per-row connector. */
+  background-image: linear-gradient(var(--border) 0 0);
+  background-size: 1px 100%;
+  background-position: 11px 0;
+  background-repeat: no-repeat;
+}
+
+.history-empty {
+  margin: var(--sp-4) 0;
+  color: var(--text-tertiary);
+  font-size: var(--fs-md);
+  text-align: center;
+}
+
+.history-row {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  align-items: baseline;
+  gap: var(--sp-1) var(--sp-2);
+  padding: var(--sp-2) var(--sp-2) var(--sp-2) 0;
+  border-radius: var(--r-md);
+  cursor: default;
+  font-size: var(--fs-md);
+  color: var(--text-primary);
+}
+
+.history-row:hover {
+  background: var(--bg-hover);
+}
+
+.history-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.history-row.is-current {
+  background: var(--bg-selected);
+}
+
+.history-row.is-current:hover {
+  background: var(--bg-selected-hover);
+}
+
+/* Undone steps stay in the list rather than vanishing — that is what makes
+   「取消回退」 possible at all. Dimmed, not struck through: they are not
+   deleted, they are just ahead of where you are standing. */
+.history-row.is-undone {
+  color: var(--text-tertiary);
+}
+
+.history-dot {
+  justify-self: center;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--bg-panel);
+  box-shadow: inset 0 0 0 1.5px var(--border-active);
+  /* Nudged onto the text's first line rather than the baseline box. */
+  transform: translateY(2px);
+}
+
+.history-row.is-current .history-dot {
+  background: var(--accent);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.history-main {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.history-meta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  color: var(--text-tertiary);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+
+.history-size {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Second row of the grid, under the label — the marker never competes with the
+   timestamp for the right-hand edge. */
+.history-badge {
+  grid-column: 2 / -1;
+  justify-self: start;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.history-badge.is-undone {
+  color: var(--text-tertiary);
+}
+
+/* --- misc ------------------------------------------------------------------------ */
+
+.drag-ghost {
+  position: fixed;
+  top: -1000px;
+  left: -1000px;
+  background: var(--bg-inverse);
+  color: var(--text-inverse);
+  border-radius: var(--r-md);
+  padding: var(--sp-1) var(--sp-3);
+  font-size: var(--fs-sm);
+  pointer-events: none;
+}
+
+/* --- AI organizer: settings ------------------------------------------------------- */
+
+.settings-input {
+  width: 220px;
+}
+
+.settings-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.ai-test.is-fail {
+  color: var(--danger);
+}
+
+/* --- AI organizer: panel -----------------------------------------------------------
+   Takes the preview pane's slot while open (see App). A column: header, the
+   scrolling conversation, an optional notice, the composer. */
+
+.agent-panel {
+  width: 400px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border);
+}
+
+.agent-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+
+.agent-head > .icon {
+  flex: none;
+  color: var(--accent);
+}
+
+.agent-head-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.agent-title,
+.agent-scope {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-title {
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
+  color: var(--text-primary);
+}
+
+.agent-scope {
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+}
+
+.agent-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+/* Empty states: not configured yet, and a fresh conversation. */
+.agent-empty {
+  margin: auto 0;
+  padding: var(--sp-4) var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: var(--fs-md);
+}
+
+.agent-empty h3 {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-medium);
+  color: var(--text-primary);
+}
+
+.agent-empty p {
+  margin: 0;
+  max-width: 36ch;
+  line-height: var(--lh-normal);
+}
+
+.agent-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  width: 100%;
+}
+
+.agent-suggestion {
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-raised);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease);
+}
+
+.agent-suggestion:hover {
+  border-color: var(--accent);
+}
+
+/* User messages sit on the right; the rewind handle appears on hover, to the
+   left of the bubble it rewinds to. */
+.agent-user {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: var(--sp-1);
+  margin-top: var(--sp-2);
+}
+
+.agent-bubble {
+  max-width: 85%;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-lg);
+  background: var(--bg-selected);
+  color: var(--text-primary);
+  font-size: var(--fs-md);
+  line-height: var(--lh-normal);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.agent-rewind-msg {
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+.agent-user:hover .agent-rewind-msg,
+.agent-rewind-msg:focus-visible {
+  opacity: 1;
+}
+
+.agent-assistant {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.agent-text {
+  font-size: var(--fs-md);
+  line-height: var(--lh-normal);
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.agent-text > :first-child {
+  margin-top: 0;
+}
+
+.agent-text > :last-child {
+  margin-bottom: 0;
+}
+
+.agent-thinking {
+  color: var(--text-tertiary);
+  font-size: var(--fs-sm);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+/* One tool call. Reads are quiet rows; a write (one batch = one undo step)
+   gets a stronger border and always shows what it does. */
+.agent-tool {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-raised);
+  overflow: hidden;
+}
+
+.agent-tool.is-write {
+  border-color: var(--border-active);
+}
+
+.agent-tool.is-awaiting {
+  border-color: var(--accent);
+}
+
+.agent-tool-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  padding: var(--sp-1) var(--sp-2);
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: default;
+}
+
+.agent-tool-head:hover {
+  background: var(--bg-hover);
+}
+
+.agent-tool-head:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.agent-tool-head > .icon {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.agent-tool.is-write .agent-tool-head {
+  color: var(--text-primary);
+}
+
+.agent-tool-brief {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-tool.is-undone .agent-tool-brief {
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+}
+
+.agent-tool-status {
+  flex: none;
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+}
+
+.agent-tool.is-running .agent-tool-status,
+.agent-tool.is-awaiting .agent-tool-status {
+  color: var(--accent);
+}
+
+.agent-tool.is-running .agent-tool-status {
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.agent-tool.is-error .agent-tool-status,
+.agent-tool.is-rejected .agent-tool-status {
+  color: var(--danger);
+}
+
+/* Indented to line up with the brief, past the chevron and the icon. */
+.agent-plan {
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--sp-2) var(--sp-2) calc(var(--sp-2) * 3 + 26px);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+
+.agent-plan li {
+  overflow-wrap: anywhere;
+}
+
+.agent-plan.is-errors {
+  color: var(--danger);
+}
+
+.agent-approve {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  padding: var(--sp-2);
+  border-top: 1px solid var(--border);
+}
+
+.agent-tool-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 var(--sp-2) var(--sp-1);
+}
+
+.agent-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-tertiary);
+  font: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+
+.agent-link:hover:not(:disabled) {
+  color: var(--accent);
+}
+
+.agent-link:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.agent-tool-detail {
+  border-top: 1px solid var(--border);
+  padding: var(--sp-2);
+}
+
+.agent-tool-label {
+  margin: 0 0 var(--sp-1);
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+}
+
+.agent-tool-detail pre {
+  margin: 0 0 var(--sp-2);
+  max-height: 240px;
+  overflow: auto;
+  padding: var(--sp-2);
+  border-radius: var(--r-sm);
+  background: var(--bg-panel);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.agent-tool-detail pre:last-child {
+  margin-bottom: 0;
+}
+
+/* Why a reply ended early, with the one button that carries on. */
+.agent-stop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  padding: var(--sp-2);
+  border-radius: var(--r-md);
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+}
+
+.agent-stop.is-error {
+  color: var(--danger);
+}
+
+.agent-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: none;
+  margin: 0 var(--sp-3) var(--sp-2);
+  padding: var(--sp-1) var(--sp-1) var(--sp-1) var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--bg-hover);
+  color: var(--danger);
+  font-size: var(--fs-sm);
+}
+
+.agent-notice > span {
+  flex: 1;
+}
+
+.agent-foot {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3) var(--sp-3);
+  border-top: 1px solid var(--border);
+}
+
+.agent-input {
+  width: 100%;
+  resize: none;
+  padding: var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-raised);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--fs-md);
+  line-height: var(--lh-normal);
+}
+
+.agent-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.agent-foot-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.agent-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+
+.agent-usage {
+  flex: 1;
+  text-align: right;
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.agent-foot-row > .btn:last-child {
+  margin-left: auto;
+}
+
+/* What a batch just changed, flashed in the grid. Inset, because the cells use
+   content-visibility, whose paint containment clips anything drawn outside. */
+.is-agent-touched {
+  animation: agent-touched 1.6s var(--ease);
+}
+
+@keyframes agent-touched {
+  0%,
+  35% {
+    box-shadow: inset 0 0 0 2px var(--accent);
+  }
+  100% {
+    box-shadow: inset 0 0 0 2px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-thinking,
+  .agent-tool.is-running .agent-tool-status {
+    animation: none;
+  }
+  .is-agent-touched {
+    animation: none;
+    box-shadow: inset 0 0 0 2px var(--accent);
+  }
+}
+
+/* A settings field that needs the full width: label above, control below. */
+.settings-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  padding: var(--sp-2) 0;
+  font-size: var(--fs-md);
+}
+
+.settings-textarea {
+  width: 100%;
+  height: auto;
+  min-height: 80px;
+  padding: var(--sp-2);
+  resize: vertical;
+  line-height: var(--lh-normal);
+}
+
+/* A run of lookups collapsed into one row (see `layout` in agent-panel). */
+.agent-reads-detail {
+  margin-left: var(--sp-2);
+  color: var(--text-tertiary);
+}
+
+.agent-reads.is-running .agent-tool-status {
+  color: var(--accent);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+/* While it runs, the newest lookup shows under the collapsed row. */
+.agent-reads-now {
+  padding: 0 var(--sp-2) var(--sp-1) calc(var(--sp-2) * 3 + 26px);
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-reads-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  padding: 0 var(--sp-2) var(--sp-2);
+}
+
+.agent-reads-list > .agent-tool {
+  background: var(--bg-panel);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-reads.is-running .agent-tool-status {
+    animation: none;
+  }
+}
