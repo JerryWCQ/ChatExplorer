@@ -85,3 +85,9 @@ src/
 ## 开发方式
 
 项目由本人设计和决策，开发过程中使用了 Claude Code 辅助编码。
+
+## 许可证
+
+本项目以 GPL-3.0 许可证发布，详见 [LICENSE](LICENSE)。
+
+Copyright (C) 2026 JerryWCQ
